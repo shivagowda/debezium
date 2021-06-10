@@ -28,7 +28,7 @@ import io.debezium.testing.openshift.resources.ConnectorFactories;
 import io.debezium.testing.openshift.tools.ConfigProperties;
 import io.debezium.testing.openshift.tools.databases.mongodb.MongoController;
 import io.debezium.testing.openshift.tools.databases.mongodb.MongoDatabaseClient;
-import io.debezium.testing.openshift.tools.databases.mongodb.MongoDeployer;
+import io.debezium.testing.openshift.tools.databases.mongodb.OcpMongoDeployer;
 import io.debezium.testing.openshift.tools.kafka.ConnectorConfigBuilder;
 
 import okhttp3.Request;
@@ -56,8 +56,14 @@ public class MongoConnectorIT extends ConnectorTestBase {
 
     @BeforeAll
     public static void setupDatabase() throws IOException, InterruptedException {
+<<<<<<< HEAD
         if (!ConfigProperties.DATABASE_MONGO_HOST.isPresent()) {
             dbController = new MongoDeployer(ocp)
+=======
+        if (!ConfigProperties.DATABASE_MYSQL_HOST.isPresent()) {
+            OcpMongoDeployer deployer = new OcpMongoDeployer.Deployer()
+                    .withOcpClient(ocp)
+>>>>>>> 8602f2e44 (DBZ-3566 Refactored database deployers and controllers)
                     .withProject(ConfigProperties.OCP_PROJECT_MONGO)
                     .withDeployment(DB_DEPLOYMENT_PATH)
                     .withServices(DB_SERVICE_PATH_LB, DB_SERVICE_PATH)
