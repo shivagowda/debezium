@@ -26,7 +26,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import io.debezium.testing.openshift.ConnectorTestBase;
 import io.debezium.testing.openshift.resources.ConnectorFactories;
 import io.debezium.testing.openshift.tools.ConfigProperties;
-import io.debezium.testing.openshift.tools.databases.mongodb.MongoController;
+import io.debezium.testing.openshift.tools.databases.mongodb.OcpMongoController;
 import io.debezium.testing.openshift.tools.databases.mongodb.MongoDatabaseClient;
 import io.debezium.testing.openshift.tools.databases.mongodb.MongoDeployer;
 import io.debezium.testing.openshift.tools.kafka.ConnectorConfigBuilder;
@@ -48,8 +48,12 @@ public class MongoConnectorIT extends ConnectorTestBase {
 
     public static final String CONNECTOR_NAME = "inventory-connector-mongo";
 
+<<<<<<< HEAD
     private static MongoController dbController;
     private static ConnectorFactories connectorFactories = new ConnectorFactories();
+=======
+    private static OcpMongoController dbController;
+>>>>>>> c0395b7d5 (DBZ-3566 Renaming current MongoController to OcpMongoController)
     private static ConnectorConfigBuilder connectorConfig;
     private static String connectorName;
     private static String dbServerName;
