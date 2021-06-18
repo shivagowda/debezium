@@ -286,6 +286,9 @@ public final class TransactionalBuffer implements AutoCloseable {
             if (!transaction.events.isEmpty()) {
                 dispatcher.dispatchTransactionCommittedEvent(offsetContext);
             }
+            else {
+                dispatcher.dispatchHeartbeatEvent(offsetContext);
+            }
 
             if (lastCommittedScn.compareTo(maxCommittedScn) > 0) {
                 LOGGER.trace("Updated transaction buffer max commit SCN to '{}'", lastCommittedScn);
@@ -318,13 +321,16 @@ public final class TransactionalBuffer implements AutoCloseable {
      * Update the offset context based on the current state of the transaction buffer.
      *
      * @param offsetContext offset context, should not be {@code null}
+     * @param dispatcher event dispatcher, should not be {@code null}
      * @return offset context SCN, never {@code null}
+     * @throws InterruptedException thrown if dispatch of heartbeat event fails
      */
-    Scn updateOffsetContext(OracleOffsetContext offsetContext) {
+    Scn updateOffsetContext(OracleOffsetContext offsetContext, EventDispatcher<TableId> dispatcher) throws InterruptedException {
         if (transactions.isEmpty()) {
             if (!maxCommittedScn.isNull()) {
                 LOGGER.trace("Transaction buffer is empty, updating offset SCN to '{}'", maxCommittedScn);
                 offsetContext.setScn(maxCommittedScn);
+                dispatcher.dispatchHeartbeatEvent(offsetContext);
             }
             else {
                 LOGGER.trace("No max committed SCN detected, offset SCN still '{}'", offsetContext.getScn());
@@ -336,6 +342,7 @@ public final class TransactionalBuffer implements AutoCloseable {
                 LOGGER.trace("Removing all commits up to SCN '{}'", minStartScn);
                 recentlyCommittedTransactionIds.removeIf(t -> t.firstScn.compareTo(minStartScn) < 0);
                 offsetContext.setScn(minStartScn.subtract(Scn.valueOf(1)));
+                dispatcher.dispatchHeartbeatEvent(offsetContext);
             }
             else {
                 LOGGER.trace("Minimum SCN in transaction buffer is still SCN '{}'", minStartScn);
