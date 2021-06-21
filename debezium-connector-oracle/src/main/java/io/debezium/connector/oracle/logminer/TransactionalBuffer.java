@@ -287,6 +287,8 @@ public final class TransactionalBuffer implements AutoCloseable {
                 dispatcher.dispatchTransactionCommittedEvent(offsetContext);
             }
 
+            streamingMetrics.calculateLagMetrics(timestamp.toInstant());
+
             if (lastCommittedScn.compareTo(maxCommittedScn) > 0) {
                 LOGGER.trace("Updated transaction buffer max commit SCN to '{}'", lastCommittedScn);
                 maxCommittedScn = lastCommittedScn;
