@@ -95,6 +95,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
         Configuration config = TestHelper.defaultConfig()
                 .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                .with(OracleConnectorConfig.LOB_ENABLED, true)
                 .build();
 
         start(OracleConnector.class, config);
@@ -130,6 +131,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
         Configuration config = TestHelper.defaultConfig()
                 .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                .with(OracleConnectorConfig.LOB_ENABLED, true)
                 .build();
 
         start(OracleConnector.class, config);
@@ -309,6 +311,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
         Configuration config = TestHelper.defaultConfig()
                 .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                .with(OracleConnectorConfig.LOB_ENABLED, true)
                 .build();
 
         start(OracleConnector.class, config);
@@ -496,6 +499,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
         Configuration config = TestHelper.defaultConfig()
                 .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                .with(OracleConnectorConfig.LOB_ENABLED, true)
                 .build();
 
         start(OracleConnector.class, config);
@@ -676,6 +680,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
         Configuration config = TestHelper.defaultConfig()
                 .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                .with(OracleConnectorConfig.LOB_ENABLED, true)
                 .build();
 
         start(OracleConnector.class, config);
@@ -866,6 +871,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
         Configuration config = TestHelper.defaultConfig()
                 .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                .with(OracleConnectorConfig.LOB_ENABLED, true)
                 .build();
 
         start(OracleConnector.class, config);
@@ -1070,6 +1076,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
         Configuration config = TestHelper.defaultConfig()
                 .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                .with(OracleConnectorConfig.LOB_ENABLED, true)
                 .build();
 
         LogInterceptor logInterceptor = new LogInterceptor();
@@ -1120,6 +1127,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
         Configuration config = TestHelper.defaultConfig()
                 .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                .with(OracleConnectorConfig.LOB_ENABLED, true)
                 .build();
 
         start(OracleConnector.class, config);
@@ -1197,6 +1205,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
         Configuration config = TestHelper.defaultConfig()
                 .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                .with(OracleConnectorConfig.LOB_ENABLED, true)
                 .build();
 
         start(OracleConnector.class, config);
@@ -1388,6 +1397,155 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
         assertThat(after(record)).isNull();
     }
 
+<<<<<<< HEAD
+=======
+    @Test
+    @FixFor("DBZ-3631")
+    public void shouldReconcileTransactionWhenAllBlobClobAreInitializedAsNull() throws Exception {
+        final String DDL = "CREATE TABLE dbz3631 ("
+                + "ID NUMBER(38) NOT NULL,"
+                + "ENTITY_ID NUMBER(38) NOT NULL,"
+                + "DOCX CLOB,"
+                + "DOCX_SIGNATURE CLOB,"
+                + "XML_OOS CLOB,"
+                + "XML_OOS_SIGNATURE CLOB,"
+                + "PRIMARY KEY(ID))";
+
+        TestHelper.dropTable(connection, "dbz3631");
+        try {
+            connection.execute(DDL);
+            TestHelper.streamTable(connection, "dbz3631");
+
+            Configuration config = TestHelper.defaultConfig()
+                    .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM.DBZ3631")
+                    .with(OracleConnectorConfig.LOB_ENABLED, true)
+                    .build();
+
+            start(OracleConnector.class, config);
+            assertConnectorIsRunning();
+
+            waitForStreamingRunning(TestHelper.CONNECTOR_NAME, TestHelper.SERVER_NAME);
+
+            // Performs an insert with several blob fields, should produce an insert/update pair
+            connection.executeWithoutCommitting("INSERT INTO dbz3631 ("
+                    + "ID,"
+                    + "ENTITY_ID"
+                    + ") VALUES ("
+                    + "13268281,"
+                    + "13340568"
+                    + ")");
+
+            connection.commit();
+
+            SourceRecords records = consumeRecordsByTopic(1);
+
+            List<SourceRecord> table = records.recordsForTopic("server1.DEBEZIUM.DBZ3631");
+            assertThat(table).hasSize(1);
+
+            SourceRecord record = table.get(0);
+            Struct value = (Struct) record.value();
+            Struct after = value.getStruct(Envelope.FieldName.AFTER);
+            assertThat(after.get("ID")).isEqualTo(BigDecimal.valueOf(13268281));
+            assertThat(after.get("ENTITY_ID")).isEqualTo(BigDecimal.valueOf(13340568));
+            assertThat(after.get("DOCX")).isNull();
+            assertThat(after.get("DOCX_SIGNATURE")).isNull();
+            assertThat(after.get("XML_OOS")).isNull();
+            assertThat(after.get("XML_OOS_SIGNATURE")).isNull();
+            assertThat(value.get(Envelope.FieldName.OPERATION)).isEqualTo(Envelope.Operation.CREATE.code());
+        }
+        finally {
+            TestHelper.dropTable(connection, "dbz3631");
+        }
+    }
+
+    @Test
+    @FixFor("DBZ-3645")
+    public void shouldNotEmitClobFieldValuesWhenLobSupportIsNotEnabled() throws Exception {
+        boolean logMinerAdapter = TestHelper.adapter().equals(OracleConnectorConfig.ConnectorAdapter.LOG_MINER);
+        TestHelper.dropTable(connection, "dbz3645");
+        try {
+            connection.execute("CREATE TABLE dbz3645 (id numeric(9,0), data clob, primary key(id))");
+            TestHelper.streamTable(connection, "dbz3645");
+
+            // Small data
+            connection.execute("INSERT INTO dbz3645 (id,data) values (1,'Test1')");
+
+            // Large data
+            Clob clob1 = createClob(part(JSON_DATA, 0, 25000));
+            connection.prepareQuery("INSERT INTO dbz3645 (id,data) values (2,?)", ps -> ps.setClob(1, clob1), null);
+            connection.commit();
+
+            Configuration config = TestHelper.defaultConfig()
+                    .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.DBZ3645")
+                    .with(OracleConnectorConfig.LOB_ENABLED, false)
+                    .build();
+
+            start(OracleConnector.class, config);
+            assertConnectorIsRunning();
+
+            waitForStreamingRunning(TestHelper.CONNECTOR_NAME, TestHelper.SERVER_NAME);
+
+            // Get snapshot records
+            SourceRecords sourceRecords = consumeRecordsByTopic(2);
+            List<SourceRecord> table = sourceRecords.recordsForTopic(topicName("DBZ3645"));
+            assertThat(table).hasSize(2);
+
+            SourceRecord record = table.get(0);
+            Struct after = ((Struct) record.value()).getStruct(Envelope.FieldName.AFTER);
+            assertThat(after.get("ID")).isEqualTo(1);
+            assertThat(after.get("DATA")).isNull();
+
+            record = table.get(1);
+            after = ((Struct) record.value()).getStruct(Envelope.FieldName.AFTER);
+            assertThat(after.get("ID")).isEqualTo(2);
+            assertThat(after.get("DATA")).isNull();
+
+            // Small data and large data
+            connection.executeWithoutCommitting("INSERT INTO dbz3645 (id,data) values (3,'Test3')");
+            connection.prepareQuery("INSERT INTO dbz3645 (id,data) values (4,?)", ps -> ps.setClob(1, clob1), null);
+            connection.commit();
+
+            // Get streaming records
+            sourceRecords = consumeRecordsByTopic(logMinerAdapter ? 3 : 2);
+            table = sourceRecords.recordsForTopic(topicName("DBZ3645"));
+            assertThat(table).hasSize(3);
+
+            record = table.get(0);
+            after = ((Struct) record.value()).getStruct(Envelope.FieldName.AFTER);
+            assertThat(after.get("ID")).isEqualTo(3);
+            assertThat(after.get("DATA")).isNull();
+            assertThat(((Struct) record.value()).get("op")).isEqualTo("c");
+
+            // LogMiner will pickup a separate update for CLOB fields.
+            // There is no way to differentiate this change from any other UPDATE so the connector
+            // will continue to emit it, but as a stand-alone UPDATE rather than merging it with
+            // the parent INSERT as it would when LOB is enabled.
+            if (logMinerAdapter) {
+                record = table.get(1);
+                after = ((Struct) record.value()).getStruct(Envelope.FieldName.AFTER);
+                assertThat(after.get("ID")).isEqualTo(3);
+                assertThat(after.get("DATA")).isEqualTo("Test3");
+                assertThat(((Struct) record.value()).get("op")).isEqualTo("u");
+            }
+
+            // the second insert won't emit an update due to the clob field being set by using the
+            // SELECT_LOB_LOCATOR, LOB_WRITE, and LOB_TRIM operators when using LogMiner and the
+            // CLOB field will be excluded automatically by Xstream due to skipping chunk processing.
+            record = table.get(logMinerAdapter ? 2 : 1);
+            after = ((Struct) record.value()).getStruct(Envelope.FieldName.AFTER);
+            assertThat(after.get("ID")).isEqualTo(4);
+            assertThat(after.get("DATA")).isNull();
+            assertThat(((Struct) record.value()).get("op")).isEqualTo("c");
+
+            // As a sanity, there should be no more records.
+            assertNoRecordsToConsume();
+        }
+        finally {
+            TestHelper.dropTable(connection, "dbz3645");
+        }
+    }
+
+>>>>>>> c9e62a680 (DBZ-3645 Make Oracle LOB support opt-in)
     private Clob createClob(String data) throws SQLException {
         Clob clob = connection.connection().createClob();
         clob.setString(1, data);

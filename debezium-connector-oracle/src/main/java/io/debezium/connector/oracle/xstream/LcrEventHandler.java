@@ -264,9 +264,17 @@ class LcrEventHandler implements XStreamLCRCallbackHandler {
 
     @Override
     public void processChunk(ChunkColumnValue chunk) throws StreamsException {
+<<<<<<< HEAD
         // Store the chunk in the chunk map
         // Chunks will be processed once the end of the row is reached
         columnChunks.computeIfAbsent(chunk.getColumnName(), v -> new ArrayList<>()).add(chunk);
+=======
+        if (connectorConfig.isLobEnabled()) {
+            // Store the chunk in the chunk map
+            // Chunks will be processed once the end of the row is reached
+            columnChunks.computeIfAbsent(chunk.getColumnName(), v -> new ChunkColumnValues()).add(chunk);
+        }
+>>>>>>> c9e62a680 (DBZ-3645 Make Oracle LOB support opt-in)
 
         if (chunk.isEndOfRow()) {
             try {

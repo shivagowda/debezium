@@ -1587,6 +1587,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
 
             Configuration config = TestHelper.defaultConfig()
                     .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.CLOB_TEST")
+                    .with(OracleConnectorConfig.LOB_ENABLED, true)
                     .build();
 
             start(OracleConnector.class, config);
