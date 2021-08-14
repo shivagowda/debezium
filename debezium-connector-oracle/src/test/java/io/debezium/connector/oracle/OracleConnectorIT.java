@@ -16,6 +16,7 @@ import static org.fest.assertions.MapAssert.entry;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -24,11 +25,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
+import org.awaitility.Awaitility;
+import org.awaitility.Durations;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -51,6 +55,7 @@ import io.debezium.data.VerifyRecord;
 import io.debezium.doc.FixFor;
 import io.debezium.embedded.AbstractConnectorTest;
 import io.debezium.heartbeat.Heartbeat;
+import io.debezium.junit.logging.LogInterceptor;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.util.Testing;
 
@@ -720,24 +725,32 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         connection.execute("INSERT INTO debezium.dbz800b VALUES (2, 'BBB')");
         connection.execute("COMMIT");
 
-        // expecting two heartbeat records and one actual change record
-        List<SourceRecord> records = consumeRecordsByTopic(3).allRecordsInOrder();
+        // The number of heartbeat events may vary depending on how fast the events are seen in
+        // LogMiner, so to compensate for the varied number of heartbeats that might be emitted
+        // the following waits until we have seen the DBZ800B event before returning.
+        final AtomicReference<SourceRecords> records = new AtomicReference<>();
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(60))
+                .until(() -> {
+                    if (records.get() == null) {
+                        records.set(consumeRecordsByTopic(1));
+                    }
+                    else {
+                        consumeRecordsByTopic(1).allRecordsInOrder().forEach(records.get()::add);
+                    }
+                    return records.get().recordsForTopic("server1.DEBEZIUM.DBZ800B") != null;
+                });
 
-        if (TestHelper.adapter().equals(OracleConnectorConfig.ConnectorAdapter.XSTREAM)) {
-            // expecting no change record for s1.a but a heartbeat
-            verifyHeartbeatRecord(records.get(0));
+        List<SourceRecord> heartbeats = records.get().recordsForTopic("__debezium-heartbeat.server1");
+        List<SourceRecord> tableA = records.get().recordsForTopic("server1.DEBEZIUM.DBZ800A");
+        List<SourceRecord> tableB = records.get().recordsForTopic("server1.DEBEZIUM.DBZ800B");
 
-            // and then a change record for s1.b and a heartbeat
-            verifyHeartbeatRecord(records.get(1));
-            VerifyRecord.isValidInsert(records.get(2), "ID", 2);
-        }
-        else {
-            // Unlike Xstream, LogMiner's query will exclude the insert for dbz800a and
-            // so we won't actually emit a Heartbeat for that record at all but we will
-            // instead emit one when we detect dbz800b only.
-            verifyHeartbeatRecord(records.get(0));
-            VerifyRecord.isValidInsert(records.get(1), "ID", 2);
-        }
+        // there should be at least one heartbeat, no events for DBZ800A and one for DBZ800B
+        assertThat(heartbeats).isNotEmpty();
+        assertThat(tableA).isNull();
+        assertThat(tableB).hasSize(1);
+
+        VerifyRecord.isValidInsert(tableB.get(0), "ID", 2);
     }
 
     @Test
@@ -1836,6 +1849,65 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         }
         finally {
             TestHelper.dropTables(connection, "dbz3062a", "dbz3062b");
+        }
+    }
+
+    @Test
+    @FixFor("DBZ-3616")
+    public void shouldNotLogWarningsAboutCommittedTransactionsWhileStreamingNormally() throws Exception {
+        final LogInterceptor logInterceptor = new LogInterceptor();
+        TestHelper.dropTables(connection, "dbz3616", "dbz3616");
+        try {
+            connection.execute("CREATE TABLE dbz3616 (id number(9,0), data varchar2(50))");
+            TestHelper.streamTable(connection, "dbz3616");
+            connection.commit();
+
+            Configuration config = TestHelper.defaultConfig()
+                    .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+                    .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.DBZ3616.*")
+                    // use online_catalog mode explicitly due to Awaitility timer below.
+                    .with(OracleConnectorConfig.LOG_MINING_STRATEGY, "online_catalog")
+                    .build();
+
+            // Start connector
+            start(OracleConnector.class, config);
+            assertConnectorIsRunning();
+
+            // Wait for streaming
+            waitForStreamingRunning(TestHelper.CONNECTOR_NAME, TestHelper.SERVER_NAME);
+
+            // Start second connection and write an insert, without commit.
+            OracleConnection connection2 = TestHelper.testConnection();
+            connection2.executeWithoutCommitting("INSERT INTO dbz3616 (id,data) values (1,'Conn2')");
+
+            // One first connection write an insert without commit, then explicitly commit it.
+            connection.executeWithoutCommitting("INSERT INTO dbz3616 (id,data) values (2,'Conn1')");
+            connection.commit();
+
+            // Connector should continually re-mine the first transaction until committed.
+            // During this time, there should not be these extra log messages that we
+            // will assert against later via LogInterceptor.
+            Awaitility.await()
+                    .pollDelay(Durations.ONE_MINUTE)
+                    .timeout(Durations.TWO_MINUTES)
+                    .until(() -> true);
+
+            // Now commit connection2, this means we should get 2 inserts.
+            connection2.commit();
+
+            // Now get the 2 records, two inserts from both transactions
+            SourceRecords records = consumeRecordsByTopic(2);
+            assertThat(records.recordsForTopic("server1.DEBEZIUM.DBZ3616")).hasSize(2);
+
+            List<SourceRecord> tableRecords = records.recordsForTopic("server1.DEBEZIUM.DBZ3616");
+            assertThat(((Struct) tableRecords.get(0).value()).getStruct("after").get("ID")).isEqualTo(2);
+            assertThat(((Struct) tableRecords.get(1).value()).getStruct("after").get("ID")).isEqualTo(1);
+
+            // Now check that we didn't get the unnecessary warning messages.
+            assertThat(logInterceptor.containsWarnMessage("was already processed, ignore.")).isFalse();
+        }
+        finally {
+            TestHelper.dropTables(connection, "dbz3616", "dbz3616");
         }
     }
 
