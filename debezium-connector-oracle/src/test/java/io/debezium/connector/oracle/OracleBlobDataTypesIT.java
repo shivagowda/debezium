@@ -9,12 +9,14 @@ import static org.fest.assertions.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.connect.data.Struct;
@@ -1011,8 +1013,7 @@ public class OracleBlobDataTypesIT extends AbstractConnectorTest {
         assertThat(after.get("VAL_DATA")).isEqualTo("Test1U");
     }
 
-<<<<<<< HEAD
-=======
+
     @Test
     @FixFor("DBZ-3631")
     public void shouldReconcileTransactionWhenAllBlobClobAreInitializedAsNull() throws Exception {
@@ -1032,7 +1033,9 @@ public class OracleBlobDataTypesIT extends AbstractConnectorTest {
 
             Configuration config = TestHelper.defaultConfig()
                     .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM.DBZ3631")
+
                     .with(OracleConnectorConfig.LOB_ENABLED, true)
+
                     .build();
 
             start(OracleConnector.class, config);
@@ -1071,6 +1074,7 @@ public class OracleBlobDataTypesIT extends AbstractConnectorTest {
             TestHelper.dropTable(connection, "dbz3631");
         }
     }
+
 
     @Test
     @FixFor("DBZ-3645")
@@ -1161,7 +1165,7 @@ public class OracleBlobDataTypesIT extends AbstractConnectorTest {
         }
     }
 
->>>>>>> c9e62a680 (DBZ-3645 Make Oracle LOB support opt-in)
+
     private static byte[] part(byte[] buffer, int start, int length) {
         return Arrays.copyOfRange(buffer, start, length);
     }

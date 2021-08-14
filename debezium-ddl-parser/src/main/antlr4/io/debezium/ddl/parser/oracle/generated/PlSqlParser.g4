@@ -2039,6 +2039,7 @@ physical_attributes_clause
     : (PCTFREE pctfree=UNSIGNED_INTEGER
       | PCTUSED pctused=UNSIGNED_INTEGER
       | INITRANS inittrans=UNSIGNED_INTEGER
+      | MAXTRANS maxtrans=UNSIGNED_INTEGER
       | storage_clause
       )+
     ;
@@ -2102,7 +2103,7 @@ supplemental_log_grp_clause
 supplemental_id_key_clause
     : DATA '('( ','? ( ALL
                      | PRIMARY KEY
-                     | UNIQUE
+                     | UNIQUE INDEX?
                      | FOREIGN KEY
                      )
               )+

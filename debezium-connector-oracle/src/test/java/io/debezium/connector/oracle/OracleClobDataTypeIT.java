@@ -7,10 +7,12 @@ package io.debezium.connector.oracle;
 
 import static org.fest.assertions.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.connect.data.Struct;
@@ -1397,8 +1399,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
         assertThat(after(record)).isNull();
     }
 
-<<<<<<< HEAD
-=======
+
     @Test
     @FixFor("DBZ-3631")
     public void shouldReconcileTransactionWhenAllBlobClobAreInitializedAsNull() throws Exception {
@@ -1418,7 +1419,9 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
 
             Configuration config = TestHelper.defaultConfig()
                     .with(OracleConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM.DBZ3631")
+
                     .with(OracleConnectorConfig.LOB_ENABLED, true)
+
                     .build();
 
             start(OracleConnector.class, config);
@@ -1457,6 +1460,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
             TestHelper.dropTable(connection, "dbz3631");
         }
     }
+
 
     @Test
     @FixFor("DBZ-3645")
@@ -1545,7 +1549,7 @@ public class OracleClobDataTypeIT extends AbstractConnectorTest {
         }
     }
 
->>>>>>> c9e62a680 (DBZ-3645 Make Oracle LOB support opt-in)
+
     private Clob createClob(String data) throws SQLException {
         Clob clob = connection.connection().createClob();
         clob.setString(1, data);

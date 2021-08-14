@@ -72,6 +72,7 @@ public class LogMinerQueryBuilder {
             // are not part of the inclusion/exclusion lists.
             query.append(" OR ").append(buildDdlPredicate(userName)).append(" ");
             // Insert, Update, Delete, SelectLob, LobWrite, LobTrim, and LobErase
+
             if (connectorConfig.isLobEnabled()) {
                 query.append(") OR (OPERATION_CODE IN (1,2,3,9,10,11,29) ");
             }
@@ -87,6 +88,13 @@ public class LogMinerQueryBuilder {
             else {
                 query.append(") OR ((OPERATION_CODE IN (1,2,3) ");
             }
+
+            query.append(") OR (OPERATION_CODE IN (1,2,3,9,10,11,29) ");
+        }
+        else {
+            // Insert, Update, Delete, SelectLob, LobWrite, LobTrim, and LobErase
+            query.append(") OR ((OPERATION_CODE IN (1,2,3,9,10,11,29) ");
+
             // In this mode, the connector will filter DDL operations based on the table inclusion/exclusion lists
             query.append("OR ").append(buildDdlPredicate(userName)).append(") ");
         }
