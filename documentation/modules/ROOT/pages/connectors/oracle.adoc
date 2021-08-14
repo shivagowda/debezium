@@ -1283,6 +1283,7 @@ Only alphanumeric characters, hyphens and underscores must be used.
 `logminer` (the default) to use the native Oracle LogMiner API;
 `xstream` to use the Oracle XStreams API.
 
+
 |[[oracle-property-database-history-kafka-topic]]<<oracle-property-database-history-kafka-topic, `+database.history.kafka.topic+`>>
 |
 |The full name of the Kafka topic where the connector will store the database schema history.
@@ -1299,6 +1300,7 @@ Skipping should be used only with care as it can lead to data loss or mangling w
 
 
 
+
 |[[oracle-property-database-history-store-only-captured-tables-ddl]]<<oracle-property-database-history-store-only-captured-tables-ddl, `+database.history.store.only.captured.tables.ddl+`>>
 |`false`
 |A Boolean value that specifies whether the connector should record all DDL statements  +
@@ -1306,6 +1308,7 @@ Skipping should be used only with care as it can lead to data loss or mangling w
 `true` records only those DDL statements that are relevant to tables whose changes are being captured by {prodname}. Set to `true` with care because missing data might become necessary if you change which tables have their changes captured. +
 +
 The safe default is `false`.
+
 
 |[[oracle-property-snapshot-mode]]<<oracle-property-snapshot-mode, `+snapshot.mode+`>>
 |_initial_
