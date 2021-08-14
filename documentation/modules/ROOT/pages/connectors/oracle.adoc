@@ -1297,6 +1297,8 @@ Only alphanumeric characters, hyphens and underscores must be used.
 The safe default is `false`.
 Skipping should be used only with care as it can lead to data loss or mangling when the redo logs are being processed.
 
+
+
 |[[oracle-property-database-history-store-only-captured-tables-ddl]]<<oracle-property-database-history-store-only-captured-tables-ddl, `+database.history.store.only.captured.tables.ddl+`>>
 |`false`
 |A Boolean value that specifies whether the connector should record all DDL statements  +
