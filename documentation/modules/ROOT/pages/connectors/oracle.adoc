@@ -718,11 +718,51 @@ Please file a {jira-url}/browse/DBZ[JIRA issue] for any specific types that may 
 endif::community[]
 
 [id="oracle-character-types"]
-=== Character and BLOB types
+=== Character types
 
-The following table describes how the connector maps character and blob types.
+The following table describes how the connector maps basic character types.
 
-.Mappings for Oracle character and blob data types
+.Mappings for Oracle basic character types
+[cols="20%a,15%a,55%a",options="header"]
+|===
+|Oracle Data Type
+|Literal type (schema type)
+|Semantic type (schema name) and Notes
+
+|`CHAR[(M)]`
+|`STRING`
+|n/a
+
+|`NCHAR[(M)]`
+|`STRING`
+|n/a
+
+|`NVARCHAR2[(M)]`
+|`STRING`
+|n/a
+
+|`VARCHAR[(M)]`
+|`STRING`
+|n/a
+
+|`VARCHAR2[(M)]`
+|`STRING`
+|n/a
+
+|===
+
+[id="oracle-binary-character-lob-types"]
+=== Binary and Character LOB types
+
+[NOTE]
+====
+Support for these data types is currently in incubating state, i.e. exact semantics, configuration options etc. may change in future revisions, based on feedback we receive.
+Please let us know if you encounter any problems while using these data types.
+====
+
+The following table describes how the connector maps binary and character LOB types.
+
+.Mappings for Oracle binary and character LOB types
 [cols="20%a,15%a,55%a",options="header"]
 |===
 |Oracle Data Type
@@ -732,10 +772,6 @@ The following table describes how the connector maps character and blob types.
 |`BLOB`
 |`BYTES`
 |The raw bytes.
-
-|`CHAR[(M)]`
-|`STRING`
-|n/a
 
 |`CLOB`
 |`STRING`
@@ -749,29 +785,13 @@ The following table describes how the connector maps character and blob types.
 |n/a
 |_This data type is not supported._
 
-|`NCHAR[(M)]`
-|`STRING`
-|n/a
-
 |`NCLOB`
-|`STRING`
-|n/a
-
-|`NVARCHAR2[(M)]`
 |`STRING`
 |n/a
 
 |`RAW`
 |n/a
 |_This data type is not supported._
-
-|`VARCHAR[(M)]`
-|`STRING`
-|n/a
-
-|`VARCHAR2[(M)]`
-|`STRING`
-|n/a
 
 |===
 
@@ -1283,6 +1303,7 @@ Only alphanumeric characters, hyphens and underscores must be used.
 `logminer` (the default) to use the native Oracle LogMiner API;
 `xstream` to use the Oracle XStreams API.
 
+
 |[[oracle-property-database-history-kafka-topic]]<<oracle-property-database-history-kafka-topic, `+database.history.kafka.topic+`>>
 |
 |The full name of the Kafka topic where the connector will store the database schema history.
@@ -1296,6 +1317,18 @@ Only alphanumeric characters, hyphens and underscores must be used.
 |A Boolean value that specifies whether the connector should ignore malformed or unknown database statements or stop processing so a human can fix the issue.
 The safe default is `false`.
 Skipping should be used only with care as it can lead to data loss or mangling when the redo logs are being processed.
+
+
+
+
+|[[oracle-property-database-history-store-only-captured-tables-ddl]]<<oracle-property-database-history-store-only-captured-tables-ddl, `+database.history.store.only.captured.tables.ddl+`>>
+|`false`
+|A Boolean value that specifies whether the connector should record all DDL statements  +
++
+`true` records only those DDL statements that are relevant to tables whose changes are being captured by {prodname}. Set to `true` with care because missing data might become necessary if you change which tables have their changes captured. +
++
+The safe default is `false`.
+
 
 |[[oracle-property-snapshot-mode]]<<oracle-property-snapshot-mode, `+snapshot.mode+`>>
 |_initial_
@@ -1539,6 +1572,14 @@ Any transaction that exceeds this configured value will be discarded entirely an
 
 While this option allows the behavior to be configured on a case-by-case basis,
 we have plans to enhance this behavior in a future release by means of adding a scalable transaction buffer, (see {link-prefix}:{jira-url}/browse/DBZ-3123[DBZ-3123]).
+
+|[[oracle-property-lob-enabled]]<<oracle-property-lob-enabled, `+lob.enabled+`>>
+|`false`
+|Controls whether or not large object (CLOB or BLOB) column values are emitted in change events. +
+ +
+By default, change events will have large object columns but they will not have any values.
+There is a certain amount of overhead in processing and managing large object column types and payloads.
+In order to capture large object values and have them serialized in the change events, set this option to `true`.
 
 |[[oracle-property-rac-nodes]]<<oracle-property-rac-nodes, `+rac.nodes+`>>
 |
