@@ -260,9 +260,20 @@ class LcrEventHandler implements XStreamLCRCallbackHandler {
 
     @Override
     public void processChunk(ChunkColumnValue chunk) throws StreamsException {
+
         // Store the chunk in the chunk map
         // Chunks will be processed once the end of the row is reached
+
+        columnChunks.computeIfAbsent(chunk.getColumnName(), v -> new ArrayList<>()).add(chunk);
+
+        if (connectorConfig.isLobEnabled()) {
+            // Store the chunk in the chunk map
+            // Chunks will be processed once the end of the row is reached
+            columnChunks.computeIfAbsent(chunk.getColumnName(), v -> new ChunkColumnValues()).add(chunk);
+        }
+
         columnChunks.computeIfAbsent(chunk.getColumnName(), v -> new ChunkColumnValues()).add(chunk);
+
 
         if (chunk.isEndOfRow()) {
             try {
@@ -309,7 +320,7 @@ class LcrEventHandler implements XStreamLCRCallbackHandler {
         }
     }
 
-<<<<<<< HEAD
+
     private String resolveClobChunkValue(List<ChunkColumnValue> chunkValues) throws SQLException {
         StringBuilder data = new StringBuilder();
         for (ChunkColumnValue chunkValue : chunkValues) {
@@ -343,8 +354,7 @@ class LcrEventHandler implements XStreamLCRCallbackHandler {
         return null;
     }
 
-=======
->>>>>>> bb40bd9d6 (DBZ-3631 Introduce ChunkColumnValues wrapper optimization)
+
     @Override
     public LCR createLCR() throws StreamsException {
         throw new UnsupportedOperationException("Should never be called");
