@@ -309,6 +309,41 @@ class LcrEventHandler implements XStreamLCRCallbackHandler {
         }
     }
 
+
+    private String resolveClobChunkValue(List<ChunkColumnValue> chunkValues) throws SQLException {
+        StringBuilder data = new StringBuilder();
+        for (ChunkColumnValue chunkValue : chunkValues) {
+            data.append(chunkValue.getColumnData().stringValue());
+        }
+        return data.length() == 0 ? null : data.toString();
+    }
+
+    private byte[] resolveBlobChunkValue(List<ChunkColumnValue> chunkValues) {
+
+        long size = chunkValues.stream().map(ChunkColumnValue::getColumnData).mapToLong(Datum::getLength).sum();
+
+        ByteBuffer buffer = ByteBuffer.allocate((int) size);
+        for (ChunkColumnValue columnValue : chunkValues) {
+            buffer.put(columnValue.getColumnData().getBytes());
+
+        long size = 0;
+        for (ChunkColumnValue chunkValue : chunkValues) {
+            size += ((Datum) chunkValue).getLength();
+        }
+
+
+        if (size > 0) {
+            ByteBuffer buffer = ByteBuffer.allocate((int) size);
+            for (ChunkColumnValue columnValue : chunkValues) {
+                buffer.put(columnValue.getColumnData().getBytes());
+            }
+            return buffer.array();
+
+        }
+        return null;
+    }
+
+
     @Override
     public LCR createLCR() throws StreamsException {
         throw new UnsupportedOperationException("Should never be called");
