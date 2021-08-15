@@ -26,13 +26,21 @@ import io.fabric8.openshift.client.OpenShiftClient;
  *
  * @author Jakub Cechacek
  */
+
 public class MongoController extends DatabaseController<MongoDatabaseClient> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MongoController.class);
+public class OcpMongoController extends AbstractOcpDatabaseController<MongoDatabaseClient> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OcpMongoController.class);
     private static final String DB_INIT_SCRIPT_PATH_CONTAINER = "/usr/local/bin/init-inventory.sh";
+
 
     public MongoController(Deployment deployment, List<Service> services, String dbType, OpenShiftClient ocp) {
         super(deployment, services, dbType, ocp);
+
+    public OcpMongoController(Deployment deployment, List<Service> services, OpenShiftClient ocp) {
+        super(deployment, services, ocp);
+
     }
 
     @Override
