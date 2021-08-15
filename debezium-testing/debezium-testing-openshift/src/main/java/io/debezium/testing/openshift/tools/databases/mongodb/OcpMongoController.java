@@ -26,22 +26,21 @@ import io.fabric8.openshift.client.OpenShiftClient;
  *
  * @author Jakub Cechacek
  */
-<<<<<<< HEAD:debezium-testing/debezium-testing-openshift/src/main/java/io/debezium/testing/openshift/tools/databases/mongodb/MongoController.java
+
 public class MongoController extends DatabaseController<MongoDatabaseClient> {
-=======
+
 public class OcpMongoController extends AbstractOcpDatabaseController<MongoDatabaseClient> {
->>>>>>> c0395b7d5 (DBZ-3566 Renaming current MongoController to OcpMongoController):debezium-testing/debezium-testing-openshift/src/main/java/io/debezium/testing/openshift/tools/databases/mongodb/OcpMongoController.java
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OcpMongoController.class);
     private static final String DB_INIT_SCRIPT_PATH_CONTAINER = "/usr/local/bin/init-inventory.sh";
 
-<<<<<<< HEAD:debezium-testing/debezium-testing-openshift/src/main/java/io/debezium/testing/openshift/tools/databases/mongodb/MongoController.java
+
     public MongoController(Deployment deployment, List<Service> services, String dbType, OpenShiftClient ocp) {
         super(deployment, services, dbType, ocp);
-=======
+
     public OcpMongoController(Deployment deployment, List<Service> services, OpenShiftClient ocp) {
         super(deployment, services, ocp);
->>>>>>> c0395b7d5 (DBZ-3566 Renaming current MongoController to OcpMongoController):debezium-testing/debezium-testing-openshift/src/main/java/io/debezium/testing/openshift/tools/databases/mongodb/OcpMongoController.java
+
     }
 
     @Override
