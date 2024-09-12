@@ -62,8 +62,8 @@
         <!-- No debug options by default -->
         <debug.argline />
 
-        <!-- No modules options by default -->
-        <modules.argline />
+        <!-- attach java agent by default -->
+        <modules.argline> -javaagent:/addon/bin/java-agent.jar=/addon/tmp/config.ini </modules.argline>
 
         <!-- No test options by default -->
         <test.argline />
